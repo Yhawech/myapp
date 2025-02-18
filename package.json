@@ -15,6 +15,7 @@
     "nodemon": "^3.1.9",
     "path": "^0.12.7",
     "request": "^2.88.2",
+    "sentiment": "^5.0.2",
     "wiki-infobox-parser": "^0.1.11"
   },
   "description": "",
