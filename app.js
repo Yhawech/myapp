@@ -1,132 +1,182 @@
 const express = require("express");
 const path = require("path");
+const mysql = require("mysql2");
+const session = require("express-session");
+const bcrypt = require("bcrypt");
 const axios = require("axios");
 const Sentiment = require("sentiment");
 
 const app = express();
-const NEWS_API_KEY = "679b913ddb014617bcc93a0bb89ee1ee";
-
+const NEWSAPI_KEY = "235d0e91da2a428ab195fa13223f2c95"; // Your NewsAPI Key
 const sentimentAnalyzer = new Sentiment();
 
+// Middleware
+app.use(express.static("public"));
+app.use(express.urlencoded({ extended: true }));
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
-// Trusted and Fake News Sources
-const trustedSources = ["bbc.com", "reuters.com", "apnews.com", "theguardian.com"];
-const fakeNewsSources = ["infowars.com", "beforeitsnews.com", "worldtruth.tv", "theonion.com"];
+// MySQL Database Connection
+const db = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "Admin@123",
+  database: "news_app",
+});
 
-// Keywords for bias analysis
-const leftBiasKeywords = ["progressive", "liberal", "climate change", "social justice", "welfare"];
-const rightBiasKeywords = ["conservative", "right-wing", "gun rights", "border security", "traditional"];
+db.connect((err) => {
+  if (err) {
+    console.error("❌ MySQL Connection Failed:", err);
+    process.exit(1);
+  }
+  console.log("✅ MySQL Connected...");
+});
 
-// Function to Fetch News
-async function fetchNews(url) {
+// Session Middleware
+app.use(
+  session({
+    secret: "news_secret",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
+// **Updated Fake News & Bias Detection Data**
+const fakeNewsSources = ["Infowars", "Before It's News", "WorldTruth.TV"];
+const leftSources = ["CNN", "The New York Times", "The Guardian"];
+const rightSources = ["Fox News", "Breitbart", "Daily Caller"];
+
+// **Function to Fetch News from NewsAPI**
+async function fetchNews(query = "latest", fromDate = "") {
   try {
+    let url = `https://newsapi.org/v2/everything?q=${query}&apiKey=${NEWSAPI_KEY}&language=en`;
+
+    if (fromDate) url += `&from=${fromDate}`;
+
     const response = await axios.get(url);
     return response.data.articles || [];
   } catch (error) {
-    console.error("Error fetching news:", error);
+    console.error("❌ Error fetching news:", error.message);
     return [];
   }
 }
 
-// Fake News Detection
-function detectFakeNews(article) {
-  if (!article.url) return false;
+// **Updated Bias Detection Using Source Name Instead of URL**
+const analyzeBias = (article) => {
+  const sourceName = article.source?.name || "Unknown";
 
-  const isFromFakeSource = fakeNewsSources.some((site) => article.url.includes(site));
-  const misleadingWords = ["hoax", "conspiracy", "unverified", "clickbait", "misleading"];
-  const hasMisleadingWords = misleadingWords.some((word) =>
-    (article.title || "").toLowerCase().includes(word) ||
-    (article.description || "").toLowerCase().includes(word)
-  );
+  if (leftSources.includes(sourceName)) return { type: "Left", color: "blue" };
+  if (rightSources.includes(sourceName)) return { type: "Right", color: "red" };
+  return { type: "Independent", color: "green" };
+};
 
-  return isFromFakeSource || hasMisleadingWords;
-}
+// **Fake News Detection (Using Source Name Instead of URL)**
+const detectFakeNews = (article) => {
+  const sourceName = article.source?.name || "Unknown";
+  return fakeNewsSources.includes(sourceName);
+};
 
-// Political Bias Analysis
-function analyzeBias(article) {
-  if (!article.url) return "Independent";
-
-  const leftSources = ["cnn.com", "nytimes.com", "theguardian.com", "huffpost.com"];
-  const rightSources = ["foxnews.com", "breitbart.com", "dailycaller.com", "washingtonexaminer.com"];
-
-  if (leftSources.some((site) => article.url.includes(site))) return "Left";
-  if (rightSources.some((site) => article.url.includes(site))) return "Right";
-
-  const text = (article.title || "") + " " + (article.description || "");
-  const sentimentScore = sentimentAnalyzer.analyze(text).score;
-
-  if (sentimentScore > 2) return "Left";
-  if (sentimentScore < -2) return "Right";
-  return "Independent";
-}
-
-// Home Route - Fetch Latest News
+// **Home Route - Fetch Latest News**
 app.get("/", async (req, res) => {
-  let news = await fetchNews(
-    `https://newsapi.org/v2/top-headlines?country=in&apiKey=${NEWS_API_KEY}`
-  );
-
-  news = news.map((article) => ({
-    ...article,
-    isFake: detectFakeNews(article),
-    bias: analyzeBias(article),
-  }));
-
-  res.render("index", { news });
+  let news = await fetchNews();
+  news = news.map((article) => {
+    const bias = analyzeBias(article);
+    return {
+      title: article.title || "No Title",
+      description: article.description || "No Description",
+      url: article.url || "#",
+      image: article.urlToImage || "https://via.placeholder.com/150",
+      source: article.source?.name || "Unknown",
+      isFake: detectFakeNews(article),
+      biasType: bias.type,
+      biasColor: bias.color,
+    };
+  });
+  res.render("index", { news, user: req.session.user });
 });
 
-// Search News
+// **Search News**
 app.get("/search", async (req, res) => {
   const searchTerm = req.query.search;
-  let news = await fetchNews(
-    `https://newsapi.org/v2/everything?q=${searchTerm}&apiKey=${NEWS_API_KEY}`
-  );
-
-  news = news.map((article) => ({
-    ...article,
-    isFake: detectFakeNews(article),
-    bias: analyzeBias(article),
-  }));
-
-  res.render("index", { news });
+  let news = await fetchNews(searchTerm);
+  news = news.map((article) => {
+    const bias = analyzeBias(article);
+    return {
+      title: article.title || "No Title",
+      description: article.description || "No Description",
+      url: article.url || "#",
+      image: article.urlToImage || "https://via.placeholder.com/150",
+      source: article.source?.name || "Unknown",
+      isFake: detectFakeNews(article),
+      biasType: bias.type,
+      biasColor: bias.color,
+    };
+  });
+  res.render("index", { news, user: req.session.user });
 });
 
-// Sort by Date (Newest First) - FIXED ✅
-app.get("/sort-by-date", async (req, res) => {
-  let news = await fetchNews(
-    `https://newsapi.org/v2/everything?q=news&sortBy=publishedAt&language=en&apiKey=${NEWS_API_KEY}`
-  );
-
-  news = news.map((article) => ({
-    ...article,
-    isFake: detectFakeNews(article),
-    bias: analyzeBias(article),
-  }));
-
-  res.render("index", { news });
-});
-
-// Get News by Specific Date
+// **News by Date**
 app.get("/news-by-date", async (req, res) => {
   const date = req.query.date;
-  if (!date) return res.status(400).send("Please provide a valid date.");
+  if (!date) return res.status(400).send("⚠️ Please provide a valid date.");
 
-  let news = await fetchNews(
-    `https://newsapi.org/v2/everything?q=*&from=${date}&to=${date}&sortBy=publishedAt&apiKey=${NEWS_API_KEY}`
+  let news = await fetchNews("latest", date);
+  news = news.map((article) => {
+    const bias = analyzeBias(article);
+    return {
+      title: article.title || "No Title",
+      description: article.description || "No Description",
+      url: article.url || "#",
+      image: article.urlToImage || "https://via.placeholder.com/150",
+      source: article.source?.name || "Unknown",
+      isFake: detectFakeNews(article),
+      biasType: bias.type,
+      biasColor: bias.color,
+    };
+  });
+
+  res.render("index", { news, user: req.session.user });
+});
+
+// **Signup Route**
+app.get("/signup", (req, res) => res.render("signup", { message: "" }));
+
+app.post("/signup", async (req, res) => {
+  const { username, password } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  db.query(
+    "INSERT INTO users (username, password) VALUES (?, ?)",
+    [username, hashedPassword],
+    (err) => {
+      if (err) return res.render("signup", { message: "⚠️ Username already exists!" });
+      res.redirect("/login");
+    }
   );
-
-  news = news.map((article) => ({
-    ...article,
-    isFake: detectFakeNews(article),
-    bias: analyzeBias(article),
-  }));
-
-  res.render("index", { news });
 });
 
+// **Login Route**
+app.get("/login", (req, res) => res.render("login", { message: "" }));
+
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+  db.query("SELECT * FROM users WHERE username = ?", [username], async (err, result) => {
+    if (err || result.length === 0) return res.render("login", { message: "⚠️ User not found!" });
+
+    const isMatch = await bcrypt.compare(password, result[0].password);
+    if (!isMatch) return res.render("login", { message: "⚠️ Incorrect password!" });
+
+    req.session.user = username;
+    res.redirect("/");
+  });
+});
+
+// **Logout Route**
+app.get("/logout", (req, res) => {
+  req.session.destroy();
+  res.redirect("/");
+});
+
+// **Start Server**
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
