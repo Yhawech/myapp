@@ -1,55 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>News Aggregator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Aggregator</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
-<body class="bg-gray-100">
-  <div class="container mx-auto mt-8 flex flex-col items-center">
-    <h1 class="text-3xl font-bold text-center mb-6">News Aggregator</h1>
+<body>
+    <header>
+        <h1>📰 News Aggregator</h1>
+        <nav>
+            <a href="/">Home</a>
+            <% if (!user) { %>
+                <a href="/login">Login</a>
+                <a href="/signup">Signup</a>
+            <% } else { %>
+                <a href="/logout">Logout</a>
+            <% } %>
+        </nav>
+    </header>
 
-    <!-- Search Form -->
-    <form action="/search" method="GET" class="flex mb-4">
-      <input type="search" name="search" class="px-4 py-2 border rounded-l-lg focus:outline-none" placeholder="Search News...">
-      <button class="px-4 py-2 bg-red-500 text-white rounded-r-lg hover:bg-red-600">Search</button>
+    <!-- Search Bar -->
+    <form action="/search" method="GET" class="search-form">
+        <input type="text" name="search" placeholder="Search news..." required>
+        <button type="submit">🔍 Search</button>
     </form>
 
-    <!-- Sort by Date Button -->
-    <form action="/sort-by-date" method="GET" class="mb-4">
-      <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Sort by Date</button>
-    </form>
+    <!-- News Articles -->
+    <div class="news-container">
+        <% if (news.length === 0) { %>
+            <p class="no-news">⚠️ No news articles found.</p>
+        <% } else { %>
+            <% news.forEach(article => { %>
+                <div class="news-article">
+                    <a href="<%= article.url %>" target="_blank">
+                        <img src="<%= article.image %>" alt="News Image">
+                    </a>
+                    <h2><a href="<%= article.url %>" target="_blank"><%= article.title %></a></h2>
+                    <p><%= article.description || "No description available." %></p>
+                    <p><strong>Source:</strong> <%= article.source %></p>
 
-    <!-- Search News by Date -->
-    <form action="/news-by-date" method="GET" class="mb-4">
-      <input type="date" name="date" class="px-4 py-2 border rounded-l-lg focus:outline-none">
-      <button class="px-4 py-2 bg-green-500 text-white rounded-r-lg hover:bg-green-600">Get News by Date</button>
-    </form>
+                    <!-- Bias Label -->
+                    <p class="bias-label" style="background-color: <%= article.biasColor %>;">
+                        Bias: <%= article.biasType %>
+                    </p>
 
-    <!-- News Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full px-4">
-      <% news.forEach(article => { %>
-        <div class="p-4 border rounded-lg bg-white shadow-lg">
-          <h2 class="text-xl font-bold"><%= article.title %></h2>
-          <p class="text-gray-600"><%= article.description %></p>
-          <p class="text-sm text-gray-500">Published: <%= new Date(article.publishedAt).toLocaleString() %></p>
-
-          <% if (article.isFake) { %>
-            <span class="inline-block px-3 py-1 mt-2 text-white bg-red-600 rounded">⚠️ Fake News Suspected</span>
-          <% } %>
-
-          <span class="inline-block px-3 py-1 mt-2 rounded text-white
-            <% if (article.bias === 'Left') { %> bg-blue-500 <% } %>
-            <% if (article.bias === 'Right') { %> bg-red-500 <% } %>
-            <% if (article.bias === 'Independent') { %> bg-gray-500 <% } %>">
-            🏛️ Bias: <%= article.bias %>
-          </span>
-
-          <a href="<%= article.url %>" target="_blank" class="block mt-2 text-blue-600 font-semibold">Read More</a>
-        </div>
-      <% }); %>
+                    <!-- Fake News Warning -->
+                    <% if (article.isFake) { %>
+                        <p class="fake-news">⚠️ Warning: This article may be fake news.</p>
+                    <% } %>
+                </div>
+            <% }) %>
+        <% } %>
     </div>
-  </div>
+
 </body>
 </html>
