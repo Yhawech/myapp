@@ -19,17 +19,17 @@ nav a {
     font-weight: bold;
 }
 
-.search-form {
+.search-form, .date-form {
     margin: 20px 0;
 }
 
-.search-form input {
+.search-form input, .date-form input {
     padding: 10px;
     width: 50%;
     font-size: 16px;
 }
 
-.search-form button {
+.search-form button, .date-form button {
     padding: 10px 15px;
     background-color: #007bff;
     color: white;
@@ -84,4 +84,41 @@ nav a {
     color: red;
     font-weight: bold;
     margin-top: 50px;
+}
+
+/* Authentication Forms */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px auto;
+    width: 300px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.auth-form button {
+    width: 100%;
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.error-message {
+    color: red;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
