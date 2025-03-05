@@ -10,13 +10,7 @@
     <header>
         <h1>📰 News Aggregator</h1>
         <nav>
-            <a href="/">Home</a>
-            <% if (!user) { %>
-                <a href="/login">Login</a>
-                <a href="/signup">Signup</a>
-            <% } else { %>
-                <a href="/logout">Logout</a>
-            <% } %>
+            
         </nav>
     </header>
 
@@ -24,6 +18,12 @@
     <form action="/search" method="GET" class="search-form">
         <input type="text" name="search" placeholder="Search news..." required>
         <button type="submit">🔍 Search</button>
+    </form>
+
+    <!-- News by Date -->
+    <form action="/news-by-date" method="GET" class="date-form">
+        <input type="date" name="date" required>
+        <button type="submit">📅 Search by Date</button>
     </form>
 
     <!-- News Articles -->
@@ -53,6 +53,5 @@
             <% }) %>
         <% } %>
     </div>
-
 </body>
 </html>
