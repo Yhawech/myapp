@@ -4,14 +4,12 @@ const mysql = require("mysql2");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 const axios = require("axios");
-const Sentiment = require("sentiment");
 
 const app = express();
 const NEWSAPI_KEY = "235d0e91da2a428ab195fa13223f2c95"; // Your NewsAPI Key
-const sentimentAnalyzer = new Sentiment();
 
 // Middleware
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
@@ -41,12 +39,25 @@ app.use(
   })
 );
 
-// **Updated Fake News & Bias Detection Data**
+// **Fake News & Bias Detection**
 const fakeNewsSources = ["Infowars", "Before It's News", "WorldTruth.TV"];
 const leftSources = ["CNN", "The New York Times", "The Guardian"];
 const rightSources = ["Fox News", "Breitbart", "Daily Caller"];
 
-// **Function to Fetch News from NewsAPI**
+const analyzeBias = (article) => {
+  const sourceName = article.source?.name || "Unknown";
+
+  if (leftSources.includes(sourceName)) return { type: "Left", color: "blue" };
+  if (rightSources.includes(sourceName)) return { type: "Right", color: "red" };
+  return { type: "Independent", color: "green" };
+};
+
+const detectFakeNews = (article) => {
+  const sourceName = article.source?.name || "Unknown";
+  return fakeNewsSources.includes(sourceName);
+};
+
+// **Fetch News Function**
 async function fetchNews(query = "latest", fromDate = "") {
   try {
     let url = `https://newsapi.org/v2/everything?q=${query}&apiKey=${NEWSAPI_KEY}&language=en`;
@@ -61,22 +72,7 @@ async function fetchNews(query = "latest", fromDate = "") {
   }
 }
 
-// **Updated Bias Detection Using Source Name Instead of URL**
-const analyzeBias = (article) => {
-  const sourceName = article.source?.name || "Unknown";
-
-  if (leftSources.includes(sourceName)) return { type: "Left", color: "blue" };
-  if (rightSources.includes(sourceName)) return { type: "Right", color: "red" };
-  return { type: "Independent", color: "green" };
-};
-
-// **Fake News Detection (Using Source Name Instead of URL)**
-const detectFakeNews = (article) => {
-  const sourceName = article.source?.name || "Unknown";
-  return fakeNewsSources.includes(sourceName);
-};
-
-// **Home Route - Fetch Latest News**
+// **Home Route**
 app.get("/", async (req, res) => {
   let news = await fetchNews();
   news = news.map((article) => {
@@ -139,8 +135,6 @@ app.get("/news-by-date", async (req, res) => {
 });
 
 // **Signup Route**
-app.get("/signup", (req, res) => res.render("signup", { message: "" }));
-
 app.post("/signup", async (req, res) => {
   const { username, password } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -156,8 +150,6 @@ app.post("/signup", async (req, res) => {
 });
 
 // **Login Route**
-app.get("/login", (req, res) => res.render("login", { message: "" }));
-
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   db.query("SELECT * FROM users WHERE username = ?", [username], async (err, result) => {
@@ -171,7 +163,7 @@ app.post("/login", (req, res) => {
   });
 });
 
-// **Logout Route**
+// **Logout**
 app.get("/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
