@@ -39,19 +39,40 @@ app.use(
   })
 );
 
-// **Fake News & Bias Detection**
-const fakeNewsSources = ["Infowars", "Before It's News", "WorldTruth.TV"];
-const leftSources = ["CNN", "The New York Times", "The Guardian"];
-const rightSources = ["Fox News", "Breitbart", "Daily Caller"];
+// **Bias & Fake News Detection**
+const fakeNewsSources = [
+  "Infowars", "Before It's News", "WorldTruth.TV", "YourNewsWire", "Natural News"
+];
 
+const leftSources = [
+  "CNN", "The New York Times", "The Guardian", "MSNBC", "HuffPost", "BBC", "The Washington Post", "Vox"
+];
+
+const rightSources = [
+  "Fox News", "Breitbart", "Daily Caller", "The Federalist", "National Review", "Washington Examiner", "Newsmax"
+];
+
+const independentSources = [
+  "Reuters", "Associated Press", "NPR", "Bloomberg", "USA Today", "The Hill", "PBS"
+];
+
+// Function to Analyze Bias
 const analyzeBias = (article) => {
   const sourceName = article.source?.name || "Unknown";
 
-  if (leftSources.includes(sourceName)) return { type: "Left", color: "blue" };
-  if (rightSources.includes(sourceName)) return { type: "Right", color: "red" };
-  return { type: "Independent", color: "green" };
+  if (leftSources.includes(sourceName)) return { type: "Left", color: "#007bff", level: "Moderate" };
+  if (rightSources.includes(sourceName)) return { type: "Right", color: "#dc3545", level: "Moderate" };
+  if (independentSources.includes(sourceName)) return { type: "Independent", color: "#28a745", level: "Independent" };
+
+  if (/cnn|huffpost|msnbc|vox|guardian|washington post/i.test(sourceName))
+    return { type: "Left", color: "#0056b3", level: "Strong" };
+  if (/fox news|breitbart|daily caller|federalist|newsmax/i.test(sourceName))
+    return { type: "Right", color: "#b30000", level: "Strong" };
+
+  return { type: "Independent", color: "#28a745", level: "Independent" };
 };
 
+// Function to Detect Fake News
 const detectFakeNews = (article) => {
   const sourceName = article.source?.name || "Unknown";
   return fakeNewsSources.includes(sourceName);
@@ -83,9 +104,11 @@ app.get("/", async (req, res) => {
       url: article.url || "#",
       image: article.urlToImage || "https://via.placeholder.com/150",
       source: article.source?.name || "Unknown",
+      publishedAt: article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : "Unknown Date",
       isFake: detectFakeNews(article),
       biasType: bias.type,
       biasColor: bias.color,
+      biasLevel: bias.level,
     };
   });
   res.render("index", { news, user: req.session.user });
@@ -103,9 +126,11 @@ app.get("/search", async (req, res) => {
       url: article.url || "#",
       image: article.urlToImage || "https://via.placeholder.com/150",
       source: article.source?.name || "Unknown",
+      publishedAt: article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : "Unknown Date",
       isFake: detectFakeNews(article),
       biasType: bias.type,
       biasColor: bias.color,
+      biasLevel: bias.level,
     };
   });
   res.render("index", { news, user: req.session.user });
@@ -125,9 +150,11 @@ app.get("/news-by-date", async (req, res) => {
       url: article.url || "#",
       image: article.urlToImage || "https://via.placeholder.com/150",
       source: article.source?.name || "Unknown",
+      publishedAt: article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : "Unknown Date",
       isFake: detectFakeNews(article),
       biasType: bias.type,
       biasColor: bias.color,
+      biasLevel: bias.level,
     };
   });
 
