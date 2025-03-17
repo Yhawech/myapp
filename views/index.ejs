@@ -1,56 +1,150 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>News Aggregator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Aggregator</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+
+        header {
+            background: #333;
+            color: white;
+            padding: 15px;
+        }
+
+        header a {
+            color: white;
+            margin: 0 10px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        form {
+            margin: 20px 0;
+        }
+
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .news-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .news-article {
+            width: 300px;
+            background: white;
+            margin: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .news-article img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .news-article h2 {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        .bias-label {
+            color: white;
+            font-weight: bold;
+            padding: 5px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .fake-news {
+            background-color: #ff0000;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .no-news {
+            font-size: 20px;
+            color: red;
+            font-weight: bold;
+            margin-top: 50px;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-  <div class="container mx-auto mt-8 flex flex-col items-center">
-    <h1 class="text-3xl font-bold text-center mb-6">News Aggregator</h1>
+<body>
+    <header>
+        <h1>📰 News Aggregator</h1>
+        <nav>
+            <a href="/">Home</a>
+        </nav>
+    </header>
 
-    <!-- Search Form -->
-    <form action="/search" method="GET" class="flex mb-4">
-      <input type="search" name="search" class="px-4 py-2 border rounded-l-lg focus:outline-none" placeholder="Search News...">
-      <button class="px-4 py-2 bg-red-500 text-white rounded-r-lg hover:bg-red-600">Search</button>
+    <!-- Search Bar -->
+    <form action="/search" method="GET">
+        <input type="text" name="search" placeholder="Search news..." required>
+        <button type="submit">🔍 Search</button>
     </form>
 
-    <!-- Sort by Date Button -->
-    <form action="/sort-by-date" method="GET" class="mb-4">
-      <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Sort by Date</button>
+    <!-- News by Date -->
+    <form action="/news-by-date" method="GET">
+        <input type="date" name="date" required>
+        <button type="submit">📅 Search by Date</button>
     </form>
 
-    <!-- Search News by Date -->
-    <form action="/news-by-date" method="GET" class="mb-4">
-      <input type="date" name="date" class="px-4 py-2 border rounded-l-lg focus:outline-none">
-      <button class="px-4 py-2 bg-green-500 text-white rounded-r-lg hover:bg-green-600">Get News by Date</button>
-    </form>
+    <!-- News Articles -->
+    <div class="news-container">
+        <% if (news.length === 0) { %>
+            <p class="no-news">⚠️ No news articles found.</p>
+        <% } else { %>
+            <% news.forEach(article => { %>
+                <div class="news-article">
+                    <a href="<%= article.url %>" target="_blank">
+                        <img src="<%= article.image %>" alt="News Image">
+                    </a>
+                    <h2><a href="<%= article.url %>" target="_blank"><%= article.title %></a></h2>
+                    <p><%= article.description || "No description available." %></p>
+                    <p><strong>Source:</strong> <%= article.source %></p>
+                    <p><strong>Published Date:</strong> <%= article.publishedAt || "Unknown" %></p>
+                    
+                    <!-- Bias Label -->
+                    <p class="bias-label" style="background-color: <%= article.biasColor %>;">
+                        Bias: <%= article.biasType === "Neutral" ? "Independent" : article.biasType %> - <%= article.biasLevel %>
+                    </p>
 
-    <!-- News Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full px-4">
-      <% news.forEach(article => { %>
-        <div class="p-4 border rounded-lg bg-white shadow-lg">
-          <h2 class="text-xl font-bold"><%= article.title %></h2>
-          <p class="text-gray-600"><%= article.description %></p>
-          <p class="text-sm text-gray-500">Published: <%= new Date(article.publishedAt).toLocaleString() %></p>
-
-          <% if (article.isFake) { %>
-            <span class="inline-block px-3 py-1 mt-2 text-white bg-red-600 rounded">⚠️ Fake News Suspected</span>
-          <% } %>
-
-          <span class="inline-block px-3 py-1 mt-2 rounded text-white
-            <% if (article.bias === 'Left') { %> bg-blue-500 <% } %>
-            <% if (article.bias === 'Right') { %> bg-red-500 <% } %>
-            <% if (article.bias === 'Independent') { %> bg-gray-500 <% } %>">
-            🏛️ Bias: <%= article.bias %>
-          </span>
-
-          <a href="<%= article.url %>" target="_blank" class="block mt-2 text-blue-600 font-semibold">Read More</a>
-        </div>
-      <% }); %>
+                    <!-- Fake News Warning -->
+                    <% if (article.isFake) { %>
+                        <p class="fake-news">⚠️ Warning: This article may be fake news.</p>
+                    <% } %>
+                </div>
+            <% }) %>
+        <% } %>
     </div>
-  </div>
 </body>
 </html>
-
