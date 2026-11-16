@@ -6,7 +6,7 @@ const bcrypt = require("bcrypt");
 const axios = require("axios");
 
 const app = express();
-const NEWSAPI_KEY = "235d0e91da2a428ab195fa13223f2c95"; // Your NewsAPI Key
+const NEWSAPI_KEY = "NEWS_API_KEY"; // Your NewsAPI Key
 
 // Middleware
 app.use(express.static(path.join(__dirname, "public")));
@@ -16,10 +16,10 @@ app.set("view engine", "ejs");
 
 // MySQL Database Connection
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Admin@123",
-  database: "news_app",
+  host: "DB_HOST",
+  user: "DB_USER",
+  password: "PASSWORD_OF_DB",
+  database: "DB_NAME",
 });
 
 db.connect((err) => {
